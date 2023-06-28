@@ -1,0 +1,207 @@
+<div class="dnd-5e-helper">
+	<!-- PC / NPC toggle -->
+	<!-- <input class="sheet-is-npc" type="checkbox" name="attr_is_npc" value="1"><span class="sheet-is-npc-tab"></span> -->
+	<div class="prof-bonus">
+		<span class="prof-label">Proficiency Bonus</span>
+		<input type="number" name="attr_proficiency_bonus" value="+2">
+	</div>
+	<div class="abilities-and-skills-wrapper">
+		<div class="strength-wrapper ability-wrapper">
+			<div class="ability-score-and-modifier">
+				<h3 class="ability-header">Strength</h3>
+				<div class="ability-modifier">
+					<input class="dice-modifier" type="hidden" name="attr_strength_modifier" value="+0">
+					<span class="dice-modifier" name="attr_strength_modifier"></span>
+				</div>
+				<input type="number" class="ability-score" name="attr_strength" value="10">
+			</div>
+			<div class="skills-wrapper">
+				<label class="skill-header" id="strength_proficiency_label">Prof.</label>
+				<label class="skill-header" id="strength_modifier_label">Mod</label>
+				<label class="skill-header" id="strength_name_label">Name</label>
+				<label class="skill-header" id="strength_roll_type_label">Roll Type</label>
+				<div class="skill-proficinecy-toggle value-wrapper">
+					<input type="hidden" name="attr_strength_proficiency" value="0">
+					<button type="action" name="act_strength_proficiency"
+						aria-labelledby="strength_proficiency_label"></button>
+				</div>
+				<div class="dice-modifier value-wrapper">
+					<span name="attr_strength_save" aria-labelledby="strength_modifier_label"></span>
+					<button type="action" name="act_strength_save_show_additional_mods_toggle"> ? </button>
+				</div>
+				<button type="roll" name="roll_strength_save" value="/roll @{strength_save_roll_type} @{strength_save}">
+					<span class="skill-label" aria-labelledby="strength_name_label">Saving Throw</span>
+				</button>
+				<div class="skill-advantage-toggle value-wrapper">
+					<input type="hidden" name="attr_strength_save_roll_type" value="1d20">
+					<button type="action" name="act_strength_save_roll_type"
+						aria-labelledby="strength_roll_type_label"></button>
+				</div>
+				<input type="hidden" name="attr_strength_save_show_additional_mods_toggle" value="0">
+				<div class="additional-modifiers">
+					<label class="header">Additional Modifiers</label>
+					<span>Value</span>
+					<span class="dice-label">Dice</span>
+					<input class="modifier-input" type="number" name="attr_strength_save_additional_mods" value="0">
+					<div>
+						<input type="number" name="attr_strength_save_additional_dice_count" value="0" min="0">
+						<select name="attr_strength_save_additional_dice_type">
+							<option value="d4">d4</option>
+							<option value="d6">d6</option>
+							<option value="d8">d8</option>
+							<option value="d10">d10</option>
+							<option value="d12">d12</option>
+							<option value="d20">d20</option>
+						</select>
+					</div>
+					<input type="hidden" name="attr_strength_save" value="+0">
+				</div>
+			</div>
+		</div>
+	</div>
+</div>
+
+<script type="text/worker">
+	const applyProf = (proficiency_bonus, abilityMod, profValue) => {
+		const proficiency_bonusNumber = Number(proficiency_bonus) || 0;
+		const abilityModNumber = Number(abilityMod) || 0;
+		const skillModifier = abilityModNumber + ((profValue || 0) * proficiency_bonusNumber);
+
+		return skillModifier >= 0 
+			? `+${skillModifier}` 
+			: `-${Math.abs(skillModifier)}`;
+	};
+
+	const calculateSkillModifier = (proficiency_bonus, abilityMod, profValue, additionalModifier, diceCount, diceType) => {
+		const proficiency_bonusNumber = Number(proficiency_bonus) || 0;
+		const abilityModNumber = Number(abilityMod) || 0;
+		const skillModifier = abilityModNumber + ((profValue || 0) * proficiency_bonusNumber);
+		const additionalModifierNumber = Number(additionalModifier) || 0;
+		const diceCountNumber = Number(diceCount) || 0;
+		const diceTypeValidated = diceType || "d4";
+		const valueWithAdditionalModifier = skillModifier + additionalModifierNumber;
+
+		const valueWithAdditionalModifierString = valueWithAdditionalModifier >= 0 
+			? `+${valueWithAdditionalModifier}` 
+			: `-${Math.abs(valueWithAdditionalModifier)}`;
+
+		return diceCountNumber > 0 
+			? `${valueWithAdditionalModifierString}+${diceCountNumber}${diceTypeValidated}`
+			: valueWithAdditionalModifierString;
+	}
+
+	const calculateAbilityModifier = (abilityScore) => {
+		const abilityScoreNumber = abilityScore || 10;
+		const abilityModifier = Math.floor((abilityScoreNumber - 10) / 2);
+
+		return abilityModifier >= 0 
+			? `+${abilityModifier}` 
+			: `-${Math.abs(abilityModifier)}`;
+	}
+
+	const rollTypes = [
+		"1d20",
+		"2d20kh1",
+		"2d20kl1"
+	];
+	const skillsRollTypeToggleList = [
+		"strength_save_roll_type"
+	];
+	skillsRollTypeToggleList.forEach((skillName) => {
+		on (`clicked:${skillName}`, () => {
+			getAttrs([
+				skillName
+			], (values) => {
+				const nextRollTypeIndex = (rollTypes.indexOf(values[skillName]) + 1) % rollTypes.length;
+	
+				setAttrs({
+					[skillName]: rollTypes[nextRollTypeIndex]
+				});
+			});
+		});
+	});
+
+	const skillsProficiencyToggleMap = {
+		"strength_proficiency": {
+			abilityModifier: "strength_modifier",
+			skill: "strength_save",
+			additionalModifier: "strength_save_additional_mods",
+			additionalDiceCount: "strength_save_additional_dice_count",
+			additionalDiceType: "strength_save_additional_dice_type"
+		}
+	};
+	Object.keys(skillsProficiencyToggleMap).forEach((skillProf) => {
+		on (`clicked:${skillProf}`, () => {
+			const {
+				abilityModifier,
+				skill,
+				additionalModifier,
+				additionalDiceCount,
+				additionalDiceType
+			} = skillsProficiencyToggleMap[skillProf];
+			getAttrs([skillProf, abilityModifier, "proficiency_bonus", skill, additionalModifier, additionalDiceCount, additionalDiceType], (values) => {
+				const profMultiplier = (Number((values[skillProf] || 0)) + 1) % 3;
+	
+				setAttrs({
+					[skillProf]: profMultiplier,
+					[skill]: calculateSkillModifier(
+						values.proficiency_bonus,
+						values[abilityModifier],
+						profMultiplier,
+						values[additionalModifier],
+						values[additionalDiceCount],
+						values[additionalDiceType]
+					)
+				});
+			});
+		});
+	});
+
+	const additionalModifiersToggles = [
+		"strength_save_show_additional_mods_toggle"
+	];
+	additionalModifiersToggles.forEach((toggle) => {
+		on (`clicked:${toggle}`, () => {
+			getAttrs([
+				toggle
+			], (values) => {
+				setAttrs({
+					[toggle]: ((Number(values[toggle]) || 0) + 1) % 2
+				});
+			});
+		});
+	})
+
+	const getUpdatedStrengthValues = (values) => {
+		return {
+			strength_save: applyProf(values.proficiency_bonus, values.strength_modifier, values.strength_proficiency)
+		};
+	};
+
+	on ("change:strength", () => {
+		getAttrs([
+			"proficiency_bonus",
+			"strength",
+			"strength_proficiency"
+		], (values) => {
+			const strength_modifier = calculateAbilityModifier(values.strength);
+			values.strength_modifier = strength_modifier;
+			setAttrs({
+				strength_modifier,
+				...getUpdatedStrengthValues(values)
+			});
+		});
+	});
+
+	on ("change:proficiency_bonus", () => {
+		getAttrs([
+			"proficiency_bonus",
+			"strength_modifier",
+			"strength_proficiency"
+		], (values) => {
+			setAttrs({
+				...getUpdatedStrengthValues(values)
+			});
+		});
+	});
+</script>
