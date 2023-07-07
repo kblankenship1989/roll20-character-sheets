@@ -11,92 +11,9 @@ mixin rollTypeButton(attribute, classes, ariaLabel)
 			aria-labelledby= ariaLabel
 		)
 
-mixin additinalModifiers(skill)
-	.additional-modifiers 
-		label.header Additional Modifiers
-		span Value
-		span.dice-label Dice
-		input.modifier-input(
-			type="number" 
-			name=`attr_${skill}_additional_mods`
-			value="0"
-		)
-		div
-			input(
-				type="number"
-				name=`attr_${skill}_additional_dice_count`
-				value="0"
-				min="0"
-			)
-			select
-				each dieType in ['d4', 'd6', 'd8', 'd10', 'd12', 'd20']
-					option(value=dieType)=dieType
-		input(
-			type="hidden"
-			name=`attr_${skill}`
-			value="+0"
-		)
-
-mixin skillWrapper(attributeName, skill)
-	.skill-proficiency-toggle.value-wrapper 
-		input(
-			type="hidden"
-			name=`attr_${skill.name}_proficiency`
-			value="0"
-		)
-		button(
-			type="action"
-			name=`act_${skill.name}_proficiency`
-			aria-labelledby=`${attributeName}_proficiency_label`
-		)
-	.dice-modifier.value-wrapper 
-		span(
-			name=`attr_${skill.name}`
-			aria-labelledby=`${attributeName}_modifier_label`
-		)
-		button(
-			type="action"
-			name=`act_${skill.name}_show_additional_mods_toggle`
-		) ?
-	button(
-		type="roll"
-		name=`roll_${skill.name}`
-		value=`/roll @{${skill.name}_roll_type} @{${skill.name}}`
-	)
-		span.skill-label(
-			aria-labelledby=`${attributeName}_name_label`
-		)= skill.label
-	+rollTypeButton(skill.name, 'skill-advantage-toggle value-wrapper', `${attributeName}_roll_type_label`)
+mixin storedValue(name, initialValue)
 	input(
 		type="hidden"
-		name=`attr_${skill.name}_show_additional_mods_toggle`
-		value="0"
+		name=name
+		value=initialValue
 	)
-	+additinalModifiers(skill.name)
-
-mixin attributeSection(attribute)
-	div(class=`${attribute.name}-wrapper ability-wrapper`)
-		.ability-score-and-modifier 
-			h3.ability-header= attribute.label
-			.ability-modifier 
-				input.dice-modifier(
-					type="hidden"
-					name=`attr_${attribute.name}_modifier`
-					value="+0"
-				)
-				span.dice-modifier(
-					name=`attr_${attribute.name}_modifier`
-				)
-			input.ability-score(
-				type="number"
-				name=`attr_${attribute.name}`
-				value="10"
-			)
-		.skills-wrapper 
-			label.skill-header(id=`${attribute.name}_proficiency_label`) Prof.
-			label.skill-header(id=`${attribute.name}_modifier_label`) Mod
-			label.skill-header(id=`${attribute.name}_name_label`) Name
-			label.skill-header(id=`${attribute.name}_roll_type_label`) Roll Type
-			+skillWrapper(attribute.name, {name: `${attribute.name}_save`, label: 'Saving Throw'})
-			each skill in attribute.skills
-				+skillWrapper(attribute.name, skill)

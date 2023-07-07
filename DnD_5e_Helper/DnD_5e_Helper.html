@@ -1,1 +1,1149 @@
-<div class="dnd-5e-helper"> <div class="prof-bonus"> <span class="prof-label">Proficiency Bonus</span><input type="number" name="attr_proficiency_bonus" value="+2"/></div><div class="abilities-and-skills-wrapper"> <div class="strength-wrapper ability-wrapper"><div class="ability-score-and-modifier"> <h3 class="ability-header">STR</h3><div class="ability-modifier"> <input class="dice-modifier" type="hidden" name="attr_strength_modifier" value="+0"/><span class="dice-modifier" name="attr_strength_modifier"></span></div><input class="ability-score" type="number" name="attr_strength" value="10"/></div><div class="skills-wrapper"> <label class="skill-header" id="strength_proficiency_label">Prof.</label><label class="skill-header" id="strength_modifier_label">Mod</label><label class="skill-header" id="strength_name_label">Name</label><label class="skill-header" id="strength_roll_type_label">Roll Type</label><div class="skill-proficiency-toggle value-wrapper"> <input type="hidden" name="attr_strength_save_proficiency" value="0"/><button type="action" name="act_strength_save_proficiency" aria-labelledby="strength_proficiency_label"></button></div><div class="dice-modifier value-wrapper"> <span name="attr_strength_save" aria-labelledby="strength_modifier_label"></span><button type="action" name="act_strength_save_show_additional_mods_toggle">?</button></div><button type="roll" name="roll_strength_save" value="/roll @{strength_save_roll_type} @{strength_save}"><span class="skill-label" aria-labelledby="strength_name_label">Saving Throw</span></button><div class="skill-advantage-toggle value-wrapper"><input type="hidden" name="attr_strength_save_roll_type" value="1d20"/><button type="action" name="act_strength_save_roll_type" aria-labelledby="strength_roll_type_label"></button></div><input type="hidden" name="attr_strength_save_show_additional_mods_toggle" value="0"/><div class="additional-modifiers"> <label class="header">Additional Modifiers</label><span>Value</span><span class="dice-label">Dice</span><input class="modifier-input" type="number" name="attr_strength_save_additional_mods" value="0"/><div><input type="number" name="attr_strength_save_additional_dice_count" value="0" min="0"/><select><option value="d4">d4</option><option value="d6">d6</option><option value="d8">d8</option><option value="d10">d10</option><option value="d12">d12</option><option value="d20">d20</option></select></div><input type="hidden" name="attr_strength_save" value="+0"/></div><div class="skill-proficiency-toggle value-wrapper"> <input type="hidden" name="attr_athletics_proficiency" value="0"/><button type="action" name="act_athletics_proficiency" aria-labelledby="strength_proficiency_label"></button></div><div class="dice-modifier value-wrapper"> <span name="attr_athletics" aria-labelledby="strength_modifier_label"></span><button type="action" name="act_athletics_show_additional_mods_toggle">?</button></div><button type="roll" name="roll_athletics" value="/roll @{athletics_roll_type} @{athletics}"><span class="skill-label" aria-labelledby="strength_name_label">Athletics</span></button><div class="skill-advantage-toggle value-wrapper"><input type="hidden" name="attr_athletics_roll_type" value="1d20"/><button type="action" name="act_athletics_roll_type" aria-labelledby="strength_roll_type_label"></button></div><input type="hidden" name="attr_athletics_show_additional_mods_toggle" value="0"/><div class="additional-modifiers"> <label class="header">Additional Modifiers</label><span>Value</span><span class="dice-label">Dice</span><input class="modifier-input" type="number" name="attr_athletics_additional_mods" value="0"/><div><input type="number" name="attr_athletics_additional_dice_count" value="0" min="0"/><select><option value="d4">d4</option><option value="d6">d6</option><option value="d8">d8</option><option value="d10">d10</option><option value="d12">d12</option><option value="d20">d20</option></select></div><input type="hidden" name="attr_athletics" value="+0"/></div></div></div></div></div>
+
+<script type="text/worker">
+  const abilities = [
+    {
+        "name": "strength",
+        "label": "STR",
+        "skills": [
+            {
+                "name": "athletics",
+                "label": "Athletics"
+            }
+        ]
+    },
+    {
+        "name": "dexterity",
+        "label": "DEX",
+        "skills": [
+            {
+                "name": "acrobatics",
+                "label": "Acrobatics"
+            },
+            {
+                "name": "sleight_of_hand",
+                "label": "Sleight of Hand"
+            },
+            {
+                "name": "stealth",
+                "label": "Stealth"
+            }
+        ]
+    },
+    {
+        "name": "constitution",
+        "label": "CON",
+        "skills": []
+    },
+    {
+        "name": "intelligence",
+        "label": "INT",
+        "skills": [
+            {
+                "name": "arcana",
+                "label": "Arcana"
+            },
+            {
+                "name": "history",
+                "label": "History"
+            },
+            {
+                "name": "investigation",
+                "label": "Investigation"
+            },
+            {
+                "name": "nature",
+                "label": "Nature"
+            },
+            {
+                "name": "religion",
+                "label": "Religion"
+            }
+        ]
+    },
+    {
+        "name": "wisdom",
+        "label": "WIS",
+        "skills": [
+            {
+                "name": "animal_handling",
+                "label": "Animal Handling"
+            },
+            {
+                "name": "insight",
+                "label": "Insight"
+            },
+            {
+                "name": "medicine",
+                "label": "Medicine"
+            },
+            {
+                "name": "perception",
+                "label": "Perception"
+            },
+            {
+                "name": "survival",
+                "label": "Survival"
+            }
+        ]
+    },
+    {
+        "name": "charisma",
+        "label": "CHA",
+        "skills": [
+            {
+                "name": "deception",
+                "label": "Deception"
+            },
+            {
+                "name": "intimidation",
+                "label": "Intimidation"
+            },
+            {
+                "name": "performance",
+                "label": "Performance"
+            },
+            {
+                "name": "persuasion",
+                "label": "Persuasion"
+            }
+        ]
+    }
+];
+
+const rollTypes = [
+    "1d20",
+    "2d20kh1",
+    "2d20kl1"
+];
+  const calculatePassiveSkill = (skillModifier, rollType) => {
+    const rollTypePassiveModifier = {
+        "1d20": 0,
+        "2d20kh1": 5,
+        "2d20kl1": -5
+    }
+    const skillModifierNumber = Number(skillModifier) || 0;
+    const rollTypeSafe = rollType || "1d20";
+
+    return skillModifierNumber + 10 + rollTypePassiveModifier[rollTypeSafe];
+};
+
+const calculateDiceModifier = (proficiencyBonus, rootModifier, proficiencyMultiplier, additionalModifier) => {
+    const proficiencyBonusNumber = Number(proficiencyBonus) || 0;
+    const abilityModifierNumber = Number(rootModifier) || 0;
+    const skillModifier = abilityModifierNumber + ((proficiencyMultiplier || 0) * proficiencyBonusNumber);
+    const additionalModifierNumber = Number(additionalModifier) || 0;
+    const valueWithAdditionalModifier = skillModifier + additionalModifierNumber;
+
+    return valueWithAdditionalModifier >= 0 
+        ? `+${valueWithAdditionalModifier}` 
+        : `-${Math.abs(valueWithAdditionalModifier)}`;
+};
+
+const calculateAbilityModifier = (abilityScore) => {
+    const abilityScoreNumber = abilityScore || 10;
+    const abilityModifier = Math.floor((abilityScoreNumber - 10) / 2);
+
+    return abilityModifier >= 0 
+        ? `+${abilityModifier}` 
+        : `-${Math.abs(abilityModifier)}`;
+}
+
+const calculateAdditionalDice = (diceCount, diceType) => {
+    const diceCountNumber = Number(diceCount) || 0;
+    const diceTypeValidated = diceType || "d4";
+
+    if (diceCountNumber === 0) {
+        return "";
+    }
+    
+    return diceCountNumber > 0
+        ? `+${diceCountNumber}${diceTypeValidated}`
+        : `-${Math.abs(diceCountNumber)}${diceTypeValidated}`;
+}
+
+const hasAdditionalModifiers = (additionalModifier, additionalDice) => {
+    if ((Number(additionalModifier) || 0) !== 0 || Boolean(additionalDice)) {
+        return "*";
+    }
+    
+    return "";
+};
+  abilities.forEach(ability => {
+    const skillNameList = ability.skills.map(skill => skill.name).concat([`${ability.name}_save`])
+    on(`change:${ability.name}`, () => {
+        let attrs = [
+            "proficiency_bonus",
+            ability.name,
+            `${ability.name}_modifier`
+        ];
+
+        skillNameList.forEach((skill) => {
+            const skillAttrs = [
+                `${skill}_additional_modifiers`,
+                `${skill}_proficiency`,
+                `${skill}_roll_type`
+            ];
+
+            attrs = attrs.concat(skillAttrs);
+        });
+		getAttrs(attrs, (values) => {
+			const abilityModifier = calculateAbilityModifier(values[ability.name]);
+            const newValues = {
+				[`${ability.name}_modifier`]: abilityModifier
+			};
+
+            skillNameList.forEach((skill) => {
+                newValues[`${skill}`] = calculateDiceModifier(
+                    values.proficiency_bonus,
+                    abilityModifier,
+                    values[`${skill}_proficiency`],
+                    values[`${skill}_additional_modifiers`]
+                );
+                newValues[`${skill}_passive`] = calculatePassiveSkill(newValues[`${skill}`], values[`${skill}_roll_type`]);
+            });
+			setAttrs(newValues);
+		});
+	});
+
+    skillNameList.forEach(skill => {
+        on(`clicked:${skill}_roll_type`, () => {
+            const skillRollType = `${skill}_roll_type`;
+            getAttrs([
+                skillRollType,
+                skill
+            ], (values) => {
+                const nextRollTypeIndex = (rollTypes.indexOf(values[skillRollType]) + 1) % rollTypes.length;
+
+                const newValues = {
+                    [skillRollType]: rollTypes[nextRollTypeIndex],
+                    [`${skill}_passive`]: calculatePassiveSkill(values[skill], rollTypes[nextRollTypeIndex])
+                };
+                setAttrs(newValues);
+            });
+        });
+
+        on(`change:${skill}_additional_modifiers`, () => {
+            const attrs = [
+                "proficiency_bonus",
+                `${skill}_proficiency`,
+                `${skill}_additional_modifiers`,
+                `${skill}_additional_dice`,
+                `${ability.name}_modifier`,
+                `${skill}_roll_type`
+            ];
+            getAttrs(attrs, (values) => {
+                const skillModifier = calculateDiceModifier(
+                    values.proficiency_bonus,
+                    values[`${ability.name}_modifier`],
+                    values[`${skill}_proficiency`],
+                    values[`${skill}_additional_modifiers`]
+                );
+                const newValues = {
+                    [skill]: skillModifier,
+                    [`${skill}_passive`]: calculatePassiveSkill(skillModifier, values[`${skill}_roll_type`]),
+                    [`${skill}_has_additional_modifiers`]: hasAdditionalModifiers(values[`${skill}_additional_modifiers`], values[`${skill}_additional_dice`])
+                };
+
+                setAttrs(newValues);
+            });
+        });
+
+        on(`change:${skill}_additional_dice_count change:${skill}_additional_dice_type`, () => {
+            const attrs = [
+                `${skill}_additional_modifiers`,
+                `${skill}_additional_dice_count`,
+                `${skill}_additional_dice_type`
+            ];
+            getAttrs(attrs, (values) => {
+                const additionalDice = calculateAdditionalDice(values[`${skill}_additional_dice_count`], values[`${skill}_additional_dice_type`]);
+                const newValues = {
+                    [`${skill}_additional_dice`]: additionalDice,
+                    [`${skill}_has_additional_modifiers`]: hasAdditionalModifiers(values[`${skill}_additional_modifiers`], additionalDice)
+                };
+
+                setAttrs(newValues);
+            });
+        });
+
+        on(`clicked:${skill}_proficiency`, () => {
+            const attrs = [
+                "proficiency_bonus",
+                `${skill}_proficiency`,
+                `${skill}_additional_modifiers`,
+                `${ability.name}_modifier`,
+                `${skill}_roll_type`
+            ];
+            getAttrs(attrs, (values) => {
+                const proficiencyMultiplier = (Number((values[`${skill}_proficiency`] || 0)) + 1) % 3;
+                const skillModifer = calculateDiceModifier(
+                    values.proficiency_bonus,
+                    values[`${ability.name}_modifier`],
+                    proficiencyMultiplier,
+                    values[`${skill}_additional_modifiers`]
+                );
+                const newValues = {
+                    [`${skill}_proficiency`]: proficiencyMultiplier,
+                    [skill]: skillModifer,
+                    [`${skill}_passive`]: calculatePassiveSkill(skillModifer, values[`${skill}_roll_type`])
+                };
+
+                setAttrs(newValues);
+            });
+        });
+
+        on(`clicked:${skill}_show_additional_mods_toggle`, () => {
+            const toggle = `${skill}_show_additional_mods_toggle`;
+            getAttrs([
+                toggle
+            ], (values) => {
+                setAttrs({
+                    [toggle]: ((Number(values[toggle]) || 0) + 1) % 2
+                });
+            });
+        });
+    });
+});
+
+on("sheet:compendium-drop", function () {
+    console.log("TEST: ");
+});
+
+</script>
+<div class="dnd-5e-helper"> 
+  <div class="prof-bonus"> <span class="prof-label">Proficiency Bonus</span>
+    <input type="number" name="attr_proficiency_bonus" value="+2"/>
+  </div>
+  <div class="passive-skills">
+    <div class="passive">
+      <div class="passive-value"><span name="attr_stealth_passive"></span><span name="attr_stealth_has_additional_modifiers"></span></div><span class="passive-label">Passive Stealth</span>
+    </div>
+    <div class="passive">
+      <div class="passive-value"><span name="attr_investigation_passive"></span><span name="attr_investigation_has_additional_modifiers"></span></div><span class="passive-label">Passive Investigation</span>
+    </div>
+    <div class="passive">
+      <div class="passive-value"><span name="attr_insight_passive"></span><span name="attr_insight_has_additional_modifiers"></span></div><span class="passive-label">Passive Insight</span>
+    </div>
+    <div class="passive">
+      <div class="passive-value"><span name="attr_perception_passive"></span><span name="attr_perception_has_additional_modifiers"></span></div><span class="passive-label">Passive Perception</span>
+    </div>
+  </div>
+  <div class="abilities-and-skills-wrapper">
+    <div class="ability-wrapper">
+      <div class="ability-score-and-modifier"> 
+        <h3 class="ability-header">STR</h3>
+        <div class="ability-modifier"> 
+          <input type="hidden" name="attr_strength_modifier" value="+0"/><span name="attr_strength_modifier"></span>
+        </div>
+        <input class="ability-score" type="number" name="attr_strength" value="10" min="0" max="25"/>
+      </div>
+      <div class="skills-wrapper"> 
+        <label class="skill-header" id="strength_proficiency_label">Prof.</label>
+        <label class="skill-header" id="strength_modifier_label">Mod</label>
+        <label class="skill-header" id="strength_name_label">Name</label>
+        <label class="skill-header" id="strength_roll_type_label">Roll Type</label>
+        <div class="skill-proficiency-toggle value-wrapper"> 
+          <input type="hidden" name="attr_strength_save_proficiency" value="0"/>
+          <button type="action" name="act_strength_save_proficiency" aria-labelledby="strength_proficiency_label"></button>
+        </div>
+        <div class="dice-modifier value-wrapper">
+          <input type="hidden" name="attr_strength_save" value="+0"/>
+          <input type="hidden" name="attr_strength_save_passive" value="10"/>
+          <button type="action" name="act_strength_save_show_additional_mods_toggle" aria-labelledby="strength_modifier_label"><span name="attr_strength_save"></span><span name="attr_strength_save_has_additional_modifiers"></span></button>
+        </div>
+        <button type="roll" name="roll_strength_save" value="/roll @{strength_save_roll_type} @{strength_save}@{strength_save_additional_dice}"><span class="skill-label" aria-labelledby="strength_name_label">Saving Throw</span></button>
+        <div class="skill-advantage-toggle value-wrapper">
+          <input type="hidden" name="attr_strength_save_roll_type" value="1d20"/>
+          <button type="action" name="act_strength_save_roll_type" aria-labelledby="strength_roll_type_label"></button>
+        </div>
+        <div class="additional-modifiers">
+          <input type="hidden" name="attr_strength_save_show_additional_mods_toggle" value="0"/>
+          <label class="header">Additional Modifiers</label><span>Value</span><span class="dice-label">Dice</span>
+          <input class="modifier-input" type="number" name="attr_strength_save_additional_modifiers" value="0"/>
+          <input type="number" name="attr_strength_save_additional_dice_count" value="0"/>
+          <select name="attr_strength_save_additional_dice_type">
+            <option value="d4">d4</option>
+            <option value="d6">d6</option>
+            <option value="d8">d8</option>
+            <option value="d10">d10</option>
+            <option value="d12">d12</option>
+            <option value="d20">d20</option>
+          </select>
+          <input type="hidden" name="attr_strength_save_additional_dice" value=""/>
+          <input type="hidden" name="attr_strength_save_has_additional_modifiers" value=""/>
+        </div>
+        <div class="skill-proficiency-toggle value-wrapper"> 
+          <input type="hidden" name="attr_athletics_proficiency" value="0"/>
+          <button type="action" name="act_athletics_proficiency" aria-labelledby="strength_proficiency_label"></button>
+        </div>
+        <div class="dice-modifier value-wrapper">
+          <input type="hidden" name="attr_athletics" value="+0"/>
+          <input type="hidden" name="attr_athletics_passive" value="10"/>
+          <button type="action" name="act_athletics_show_additional_mods_toggle" aria-labelledby="strength_modifier_label"><span name="attr_athletics"></span><span name="attr_athletics_has_additional_modifiers"></span></button>
+        </div>
+        <button type="roll" name="roll_athletics" value="/roll @{athletics_roll_type} @{athletics}@{athletics_additional_dice}"><span class="skill-label" aria-labelledby="strength_name_label">Athletics</span></button>
+        <div class="skill-advantage-toggle value-wrapper">
+          <input type="hidden" name="attr_athletics_roll_type" value="1d20"/>
+          <button type="action" name="act_athletics_roll_type" aria-labelledby="strength_roll_type_label"></button>
+        </div>
+        <div class="additional-modifiers">
+          <input type="hidden" name="attr_athletics_show_additional_mods_toggle" value="0"/>
+          <label class="header">Additional Modifiers</label><span>Value</span><span class="dice-label">Dice</span>
+          <input class="modifier-input" type="number" name="attr_athletics_additional_modifiers" value="0"/>
+          <input type="number" name="attr_athletics_additional_dice_count" value="0"/>
+          <select name="attr_athletics_additional_dice_type">
+            <option value="d4">d4</option>
+            <option value="d6">d6</option>
+            <option value="d8">d8</option>
+            <option value="d10">d10</option>
+            <option value="d12">d12</option>
+            <option value="d20">d20</option>
+          </select>
+          <input type="hidden" name="attr_athletics_additional_dice" value=""/>
+          <input type="hidden" name="attr_athletics_has_additional_modifiers" value=""/>
+        </div>
+      </div>
+    </div>
+    <div class="ability-wrapper">
+      <div class="ability-score-and-modifier"> 
+        <h3 class="ability-header">DEX</h3>
+        <div class="ability-modifier"> 
+          <input type="hidden" name="attr_dexterity_modifier" value="+0"/><span name="attr_dexterity_modifier"></span>
+        </div>
+        <input class="ability-score" type="number" name="attr_dexterity" value="10" min="0" max="25"/>
+      </div>
+      <div class="skills-wrapper"> 
+        <label class="skill-header" id="dexterity_proficiency_label">Prof.</label>
+        <label class="skill-header" id="dexterity_modifier_label">Mod</label>
+        <label class="skill-header" id="dexterity_name_label">Name</label>
+        <label class="skill-header" id="dexterity_roll_type_label">Roll Type</label>
+        <div class="skill-proficiency-toggle value-wrapper"> 
+          <input type="hidden" name="attr_dexterity_save_proficiency" value="0"/>
+          <button type="action" name="act_dexterity_save_proficiency" aria-labelledby="dexterity_proficiency_label"></button>
+        </div>
+        <div class="dice-modifier value-wrapper">
+          <input type="hidden" name="attr_dexterity_save" value="+0"/>
+          <input type="hidden" name="attr_dexterity_save_passive" value="10"/>
+          <button type="action" name="act_dexterity_save_show_additional_mods_toggle" aria-labelledby="dexterity_modifier_label"><span name="attr_dexterity_save"></span><span name="attr_dexterity_save_has_additional_modifiers"></span></button>
+        </div>
+        <button type="roll" name="roll_dexterity_save" value="/roll @{dexterity_save_roll_type} @{dexterity_save}@{dexterity_save_additional_dice}"><span class="skill-label" aria-labelledby="dexterity_name_label">Saving Throw</span></button>
+        <div class="skill-advantage-toggle value-wrapper">
+          <input type="hidden" name="attr_dexterity_save_roll_type" value="1d20"/>
+          <button type="action" name="act_dexterity_save_roll_type" aria-labelledby="dexterity_roll_type_label"></button>
+        </div>
+        <div class="additional-modifiers">
+          <input type="hidden" name="attr_dexterity_save_show_additional_mods_toggle" value="0"/>
+          <label class="header">Additional Modifiers</label><span>Value</span><span class="dice-label">Dice</span>
+          <input class="modifier-input" type="number" name="attr_dexterity_save_additional_modifiers" value="0"/>
+          <input type="number" name="attr_dexterity_save_additional_dice_count" value="0"/>
+          <select name="attr_dexterity_save_additional_dice_type">
+            <option value="d4">d4</option>
+            <option value="d6">d6</option>
+            <option value="d8">d8</option>
+            <option value="d10">d10</option>
+            <option value="d12">d12</option>
+            <option value="d20">d20</option>
+          </select>
+          <input type="hidden" name="attr_dexterity_save_additional_dice" value=""/>
+          <input type="hidden" name="attr_dexterity_save_has_additional_modifiers" value=""/>
+        </div>
+        <div class="skill-proficiency-toggle value-wrapper"> 
+          <input type="hidden" name="attr_acrobatics_proficiency" value="0"/>
+          <button type="action" name="act_acrobatics_proficiency" aria-labelledby="dexterity_proficiency_label"></button>
+        </div>
+        <div class="dice-modifier value-wrapper">
+          <input type="hidden" name="attr_acrobatics" value="+0"/>
+          <input type="hidden" name="attr_acrobatics_passive" value="10"/>
+          <button type="action" name="act_acrobatics_show_additional_mods_toggle" aria-labelledby="dexterity_modifier_label"><span name="attr_acrobatics"></span><span name="attr_acrobatics_has_additional_modifiers"></span></button>
+        </div>
+        <button type="roll" name="roll_acrobatics" value="/roll @{acrobatics_roll_type} @{acrobatics}@{acrobatics_additional_dice}"><span class="skill-label" aria-labelledby="dexterity_name_label">Acrobatics</span></button>
+        <div class="skill-advantage-toggle value-wrapper">
+          <input type="hidden" name="attr_acrobatics_roll_type" value="1d20"/>
+          <button type="action" name="act_acrobatics_roll_type" aria-labelledby="dexterity_roll_type_label"></button>
+        </div>
+        <div class="additional-modifiers">
+          <input type="hidden" name="attr_acrobatics_show_additional_mods_toggle" value="0"/>
+          <label class="header">Additional Modifiers</label><span>Value</span><span class="dice-label">Dice</span>
+          <input class="modifier-input" type="number" name="attr_acrobatics_additional_modifiers" value="0"/>
+          <input type="number" name="attr_acrobatics_additional_dice_count" value="0"/>
+          <select name="attr_acrobatics_additional_dice_type">
+            <option value="d4">d4</option>
+            <option value="d6">d6</option>
+            <option value="d8">d8</option>
+            <option value="d10">d10</option>
+            <option value="d12">d12</option>
+            <option value="d20">d20</option>
+          </select>
+          <input type="hidden" name="attr_acrobatics_additional_dice" value=""/>
+          <input type="hidden" name="attr_acrobatics_has_additional_modifiers" value=""/>
+        </div>
+        <div class="skill-proficiency-toggle value-wrapper"> 
+          <input type="hidden" name="attr_sleight_of_hand_proficiency" value="0"/>
+          <button type="action" name="act_sleight_of_hand_proficiency" aria-labelledby="dexterity_proficiency_label"></button>
+        </div>
+        <div class="dice-modifier value-wrapper">
+          <input type="hidden" name="attr_sleight_of_hand" value="+0"/>
+          <input type="hidden" name="attr_sleight_of_hand_passive" value="10"/>
+          <button type="action" name="act_sleight_of_hand_show_additional_mods_toggle" aria-labelledby="dexterity_modifier_label"><span name="attr_sleight_of_hand"></span><span name="attr_sleight_of_hand_has_additional_modifiers"></span></button>
+        </div>
+        <button type="roll" name="roll_sleight_of_hand" value="/roll @{sleight_of_hand_roll_type} @{sleight_of_hand}@{sleight_of_hand_additional_dice}"><span class="skill-label" aria-labelledby="dexterity_name_label">Sleight of Hand</span></button>
+        <div class="skill-advantage-toggle value-wrapper">
+          <input type="hidden" name="attr_sleight_of_hand_roll_type" value="1d20"/>
+          <button type="action" name="act_sleight_of_hand_roll_type" aria-labelledby="dexterity_roll_type_label"></button>
+        </div>
+        <div class="additional-modifiers">
+          <input type="hidden" name="attr_sleight_of_hand_show_additional_mods_toggle" value="0"/>
+          <label class="header">Additional Modifiers</label><span>Value</span><span class="dice-label">Dice</span>
+          <input class="modifier-input" type="number" name="attr_sleight_of_hand_additional_modifiers" value="0"/>
+          <input type="number" name="attr_sleight_of_hand_additional_dice_count" value="0"/>
+          <select name="attr_sleight_of_hand_additional_dice_type">
+            <option value="d4">d4</option>
+            <option value="d6">d6</option>
+            <option value="d8">d8</option>
+            <option value="d10">d10</option>
+            <option value="d12">d12</option>
+            <option value="d20">d20</option>
+          </select>
+          <input type="hidden" name="attr_sleight_of_hand_additional_dice" value=""/>
+          <input type="hidden" name="attr_sleight_of_hand_has_additional_modifiers" value=""/>
+        </div>
+        <div class="skill-proficiency-toggle value-wrapper"> 
+          <input type="hidden" name="attr_stealth_proficiency" value="0"/>
+          <button type="action" name="act_stealth_proficiency" aria-labelledby="dexterity_proficiency_label"></button>
+        </div>
+        <div class="dice-modifier value-wrapper">
+          <input type="hidden" name="attr_stealth" value="+0"/>
+          <input type="hidden" name="attr_stealth_passive" value="10"/>
+          <button type="action" name="act_stealth_show_additional_mods_toggle" aria-labelledby="dexterity_modifier_label"><span name="attr_stealth"></span><span name="attr_stealth_has_additional_modifiers"></span></button>
+        </div>
+        <button type="roll" name="roll_stealth" value="/roll @{stealth_roll_type} @{stealth}@{stealth_additional_dice}"><span class="skill-label" aria-labelledby="dexterity_name_label">Stealth</span></button>
+        <div class="skill-advantage-toggle value-wrapper">
+          <input type="hidden" name="attr_stealth_roll_type" value="1d20"/>
+          <button type="action" name="act_stealth_roll_type" aria-labelledby="dexterity_roll_type_label"></button>
+        </div>
+        <div class="additional-modifiers">
+          <input type="hidden" name="attr_stealth_show_additional_mods_toggle" value="0"/>
+          <label class="header">Additional Modifiers</label><span>Value</span><span class="dice-label">Dice</span>
+          <input class="modifier-input" type="number" name="attr_stealth_additional_modifiers" value="0"/>
+          <input type="number" name="attr_stealth_additional_dice_count" value="0"/>
+          <select name="attr_stealth_additional_dice_type">
+            <option value="d4">d4</option>
+            <option value="d6">d6</option>
+            <option value="d8">d8</option>
+            <option value="d10">d10</option>
+            <option value="d12">d12</option>
+            <option value="d20">d20</option>
+          </select>
+          <input type="hidden" name="attr_stealth_additional_dice" value=""/>
+          <input type="hidden" name="attr_stealth_has_additional_modifiers" value=""/>
+        </div>
+      </div>
+    </div>
+    <div class="ability-wrapper">
+      <div class="ability-score-and-modifier"> 
+        <h3 class="ability-header">CON</h3>
+        <div class="ability-modifier"> 
+          <input type="hidden" name="attr_constitution_modifier" value="+0"/><span name="attr_constitution_modifier"></span>
+        </div>
+        <input class="ability-score" type="number" name="attr_constitution" value="10" min="0" max="25"/>
+      </div>
+      <div class="skills-wrapper"> 
+        <label class="skill-header" id="constitution_proficiency_label">Prof.</label>
+        <label class="skill-header" id="constitution_modifier_label">Mod</label>
+        <label class="skill-header" id="constitution_name_label">Name</label>
+        <label class="skill-header" id="constitution_roll_type_label">Roll Type</label>
+        <div class="skill-proficiency-toggle value-wrapper"> 
+          <input type="hidden" name="attr_constitution_save_proficiency" value="0"/>
+          <button type="action" name="act_constitution_save_proficiency" aria-labelledby="constitution_proficiency_label"></button>
+        </div>
+        <div class="dice-modifier value-wrapper">
+          <input type="hidden" name="attr_constitution_save" value="+0"/>
+          <input type="hidden" name="attr_constitution_save_passive" value="10"/>
+          <button type="action" name="act_constitution_save_show_additional_mods_toggle" aria-labelledby="constitution_modifier_label"><span name="attr_constitution_save"></span><span name="attr_constitution_save_has_additional_modifiers"></span></button>
+        </div>
+        <button type="roll" name="roll_constitution_save" value="/roll @{constitution_save_roll_type} @{constitution_save}@{constitution_save_additional_dice}"><span class="skill-label" aria-labelledby="constitution_name_label">Saving Throw</span></button>
+        <div class="skill-advantage-toggle value-wrapper">
+          <input type="hidden" name="attr_constitution_save_roll_type" value="1d20"/>
+          <button type="action" name="act_constitution_save_roll_type" aria-labelledby="constitution_roll_type_label"></button>
+        </div>
+        <div class="additional-modifiers">
+          <input type="hidden" name="attr_constitution_save_show_additional_mods_toggle" value="0"/>
+          <label class="header">Additional Modifiers</label><span>Value</span><span class="dice-label">Dice</span>
+          <input class="modifier-input" type="number" name="attr_constitution_save_additional_modifiers" value="0"/>
+          <input type="number" name="attr_constitution_save_additional_dice_count" value="0"/>
+          <select name="attr_constitution_save_additional_dice_type">
+            <option value="d4">d4</option>
+            <option value="d6">d6</option>
+            <option value="d8">d8</option>
+            <option value="d10">d10</option>
+            <option value="d12">d12</option>
+            <option value="d20">d20</option>
+          </select>
+          <input type="hidden" name="attr_constitution_save_additional_dice" value=""/>
+          <input type="hidden" name="attr_constitution_save_has_additional_modifiers" value=""/>
+        </div>
+      </div>
+    </div>
+    <div class="ability-wrapper">
+      <div class="ability-score-and-modifier"> 
+        <h3 class="ability-header">INT</h3>
+        <div class="ability-modifier"> 
+          <input type="hidden" name="attr_intelligence_modifier" value="+0"/><span name="attr_intelligence_modifier"></span>
+        </div>
+        <input class="ability-score" type="number" name="attr_intelligence" value="10" min="0" max="25"/>
+      </div>
+      <div class="skills-wrapper"> 
+        <label class="skill-header" id="intelligence_proficiency_label">Prof.</label>
+        <label class="skill-header" id="intelligence_modifier_label">Mod</label>
+        <label class="skill-header" id="intelligence_name_label">Name</label>
+        <label class="skill-header" id="intelligence_roll_type_label">Roll Type</label>
+        <div class="skill-proficiency-toggle value-wrapper"> 
+          <input type="hidden" name="attr_intelligence_save_proficiency" value="0"/>
+          <button type="action" name="act_intelligence_save_proficiency" aria-labelledby="intelligence_proficiency_label"></button>
+        </div>
+        <div class="dice-modifier value-wrapper">
+          <input type="hidden" name="attr_intelligence_save" value="+0"/>
+          <input type="hidden" name="attr_intelligence_save_passive" value="10"/>
+          <button type="action" name="act_intelligence_save_show_additional_mods_toggle" aria-labelledby="intelligence_modifier_label"><span name="attr_intelligence_save"></span><span name="attr_intelligence_save_has_additional_modifiers"></span></button>
+        </div>
+        <button type="roll" name="roll_intelligence_save" value="/roll @{intelligence_save_roll_type} @{intelligence_save}@{intelligence_save_additional_dice}"><span class="skill-label" aria-labelledby="intelligence_name_label">Saving Throw</span></button>
+        <div class="skill-advantage-toggle value-wrapper">
+          <input type="hidden" name="attr_intelligence_save_roll_type" value="1d20"/>
+          <button type="action" name="act_intelligence_save_roll_type" aria-labelledby="intelligence_roll_type_label"></button>
+        </div>
+        <div class="additional-modifiers">
+          <input type="hidden" name="attr_intelligence_save_show_additional_mods_toggle" value="0"/>
+          <label class="header">Additional Modifiers</label><span>Value</span><span class="dice-label">Dice</span>
+          <input class="modifier-input" type="number" name="attr_intelligence_save_additional_modifiers" value="0"/>
+          <input type="number" name="attr_intelligence_save_additional_dice_count" value="0"/>
+          <select name="attr_intelligence_save_additional_dice_type">
+            <option value="d4">d4</option>
+            <option value="d6">d6</option>
+            <option value="d8">d8</option>
+            <option value="d10">d10</option>
+            <option value="d12">d12</option>
+            <option value="d20">d20</option>
+          </select>
+          <input type="hidden" name="attr_intelligence_save_additional_dice" value=""/>
+          <input type="hidden" name="attr_intelligence_save_has_additional_modifiers" value=""/>
+        </div>
+        <div class="skill-proficiency-toggle value-wrapper"> 
+          <input type="hidden" name="attr_arcana_proficiency" value="0"/>
+          <button type="action" name="act_arcana_proficiency" aria-labelledby="intelligence_proficiency_label"></button>
+        </div>
+        <div class="dice-modifier value-wrapper">
+          <input type="hidden" name="attr_arcana" value="+0"/>
+          <input type="hidden" name="attr_arcana_passive" value="10"/>
+          <button type="action" name="act_arcana_show_additional_mods_toggle" aria-labelledby="intelligence_modifier_label"><span name="attr_arcana"></span><span name="attr_arcana_has_additional_modifiers"></span></button>
+        </div>
+        <button type="roll" name="roll_arcana" value="/roll @{arcana_roll_type} @{arcana}@{arcana_additional_dice}"><span class="skill-label" aria-labelledby="intelligence_name_label">Arcana</span></button>
+        <div class="skill-advantage-toggle value-wrapper">
+          <input type="hidden" name="attr_arcana_roll_type" value="1d20"/>
+          <button type="action" name="act_arcana_roll_type" aria-labelledby="intelligence_roll_type_label"></button>
+        </div>
+        <div class="additional-modifiers">
+          <input type="hidden" name="attr_arcana_show_additional_mods_toggle" value="0"/>
+          <label class="header">Additional Modifiers</label><span>Value</span><span class="dice-label">Dice</span>
+          <input class="modifier-input" type="number" name="attr_arcana_additional_modifiers" value="0"/>
+          <input type="number" name="attr_arcana_additional_dice_count" value="0"/>
+          <select name="attr_arcana_additional_dice_type">
+            <option value="d4">d4</option>
+            <option value="d6">d6</option>
+            <option value="d8">d8</option>
+            <option value="d10">d10</option>
+            <option value="d12">d12</option>
+            <option value="d20">d20</option>
+          </select>
+          <input type="hidden" name="attr_arcana_additional_dice" value=""/>
+          <input type="hidden" name="attr_arcana_has_additional_modifiers" value=""/>
+        </div>
+        <div class="skill-proficiency-toggle value-wrapper"> 
+          <input type="hidden" name="attr_history_proficiency" value="0"/>
+          <button type="action" name="act_history_proficiency" aria-labelledby="intelligence_proficiency_label"></button>
+        </div>
+        <div class="dice-modifier value-wrapper">
+          <input type="hidden" name="attr_history" value="+0"/>
+          <input type="hidden" name="attr_history_passive" value="10"/>
+          <button type="action" name="act_history_show_additional_mods_toggle" aria-labelledby="intelligence_modifier_label"><span name="attr_history"></span><span name="attr_history_has_additional_modifiers"></span></button>
+        </div>
+        <button type="roll" name="roll_history" value="/roll @{history_roll_type} @{history}@{history_additional_dice}"><span class="skill-label" aria-labelledby="intelligence_name_label">History</span></button>
+        <div class="skill-advantage-toggle value-wrapper">
+          <input type="hidden" name="attr_history_roll_type" value="1d20"/>
+          <button type="action" name="act_history_roll_type" aria-labelledby="intelligence_roll_type_label"></button>
+        </div>
+        <div class="additional-modifiers">
+          <input type="hidden" name="attr_history_show_additional_mods_toggle" value="0"/>
+          <label class="header">Additional Modifiers</label><span>Value</span><span class="dice-label">Dice</span>
+          <input class="modifier-input" type="number" name="attr_history_additional_modifiers" value="0"/>
+          <input type="number" name="attr_history_additional_dice_count" value="0"/>
+          <select name="attr_history_additional_dice_type">
+            <option value="d4">d4</option>
+            <option value="d6">d6</option>
+            <option value="d8">d8</option>
+            <option value="d10">d10</option>
+            <option value="d12">d12</option>
+            <option value="d20">d20</option>
+          </select>
+          <input type="hidden" name="attr_history_additional_dice" value=""/>
+          <input type="hidden" name="attr_history_has_additional_modifiers" value=""/>
+        </div>
+        <div class="skill-proficiency-toggle value-wrapper"> 
+          <input type="hidden" name="attr_investigation_proficiency" value="0"/>
+          <button type="action" name="act_investigation_proficiency" aria-labelledby="intelligence_proficiency_label"></button>
+        </div>
+        <div class="dice-modifier value-wrapper">
+          <input type="hidden" name="attr_investigation" value="+0"/>
+          <input type="hidden" name="attr_investigation_passive" value="10"/>
+          <button type="action" name="act_investigation_show_additional_mods_toggle" aria-labelledby="intelligence_modifier_label"><span name="attr_investigation"></span><span name="attr_investigation_has_additional_modifiers"></span></button>
+        </div>
+        <button type="roll" name="roll_investigation" value="/roll @{investigation_roll_type} @{investigation}@{investigation_additional_dice}"><span class="skill-label" aria-labelledby="intelligence_name_label">Investigation</span></button>
+        <div class="skill-advantage-toggle value-wrapper">
+          <input type="hidden" name="attr_investigation_roll_type" value="1d20"/>
+          <button type="action" name="act_investigation_roll_type" aria-labelledby="intelligence_roll_type_label"></button>
+        </div>
+        <div class="additional-modifiers">
+          <input type="hidden" name="attr_investigation_show_additional_mods_toggle" value="0"/>
+          <label class="header">Additional Modifiers</label><span>Value</span><span class="dice-label">Dice</span>
+          <input class="modifier-input" type="number" name="attr_investigation_additional_modifiers" value="0"/>
+          <input type="number" name="attr_investigation_additional_dice_count" value="0"/>
+          <select name="attr_investigation_additional_dice_type">
+            <option value="d4">d4</option>
+            <option value="d6">d6</option>
+            <option value="d8">d8</option>
+            <option value="d10">d10</option>
+            <option value="d12">d12</option>
+            <option value="d20">d20</option>
+          </select>
+          <input type="hidden" name="attr_investigation_additional_dice" value=""/>
+          <input type="hidden" name="attr_investigation_has_additional_modifiers" value=""/>
+        </div>
+        <div class="skill-proficiency-toggle value-wrapper"> 
+          <input type="hidden" name="attr_nature_proficiency" value="0"/>
+          <button type="action" name="act_nature_proficiency" aria-labelledby="intelligence_proficiency_label"></button>
+        </div>
+        <div class="dice-modifier value-wrapper">
+          <input type="hidden" name="attr_nature" value="+0"/>
+          <input type="hidden" name="attr_nature_passive" value="10"/>
+          <button type="action" name="act_nature_show_additional_mods_toggle" aria-labelledby="intelligence_modifier_label"><span name="attr_nature"></span><span name="attr_nature_has_additional_modifiers"></span></button>
+        </div>
+        <button type="roll" name="roll_nature" value="/roll @{nature_roll_type} @{nature}@{nature_additional_dice}"><span class="skill-label" aria-labelledby="intelligence_name_label">Nature</span></button>
+        <div class="skill-advantage-toggle value-wrapper">
+          <input type="hidden" name="attr_nature_roll_type" value="1d20"/>
+          <button type="action" name="act_nature_roll_type" aria-labelledby="intelligence_roll_type_label"></button>
+        </div>
+        <div class="additional-modifiers">
+          <input type="hidden" name="attr_nature_show_additional_mods_toggle" value="0"/>
+          <label class="header">Additional Modifiers</label><span>Value</span><span class="dice-label">Dice</span>
+          <input class="modifier-input" type="number" name="attr_nature_additional_modifiers" value="0"/>
+          <input type="number" name="attr_nature_additional_dice_count" value="0"/>
+          <select name="attr_nature_additional_dice_type">
+            <option value="d4">d4</option>
+            <option value="d6">d6</option>
+            <option value="d8">d8</option>
+            <option value="d10">d10</option>
+            <option value="d12">d12</option>
+            <option value="d20">d20</option>
+          </select>
+          <input type="hidden" name="attr_nature_additional_dice" value=""/>
+          <input type="hidden" name="attr_nature_has_additional_modifiers" value=""/>
+        </div>
+        <div class="skill-proficiency-toggle value-wrapper"> 
+          <input type="hidden" name="attr_religion_proficiency" value="0"/>
+          <button type="action" name="act_religion_proficiency" aria-labelledby="intelligence_proficiency_label"></button>
+        </div>
+        <div class="dice-modifier value-wrapper">
+          <input type="hidden" name="attr_religion" value="+0"/>
+          <input type="hidden" name="attr_religion_passive" value="10"/>
+          <button type="action" name="act_religion_show_additional_mods_toggle" aria-labelledby="intelligence_modifier_label"><span name="attr_religion"></span><span name="attr_religion_has_additional_modifiers"></span></button>
+        </div>
+        <button type="roll" name="roll_religion" value="/roll @{religion_roll_type} @{religion}@{religion_additional_dice}"><span class="skill-label" aria-labelledby="intelligence_name_label">Religion</span></button>
+        <div class="skill-advantage-toggle value-wrapper">
+          <input type="hidden" name="attr_religion_roll_type" value="1d20"/>
+          <button type="action" name="act_religion_roll_type" aria-labelledby="intelligence_roll_type_label"></button>
+        </div>
+        <div class="additional-modifiers">
+          <input type="hidden" name="attr_religion_show_additional_mods_toggle" value="0"/>
+          <label class="header">Additional Modifiers</label><span>Value</span><span class="dice-label">Dice</span>
+          <input class="modifier-input" type="number" name="attr_religion_additional_modifiers" value="0"/>
+          <input type="number" name="attr_religion_additional_dice_count" value="0"/>
+          <select name="attr_religion_additional_dice_type">
+            <option value="d4">d4</option>
+            <option value="d6">d6</option>
+            <option value="d8">d8</option>
+            <option value="d10">d10</option>
+            <option value="d12">d12</option>
+            <option value="d20">d20</option>
+          </select>
+          <input type="hidden" name="attr_religion_additional_dice" value=""/>
+          <input type="hidden" name="attr_religion_has_additional_modifiers" value=""/>
+        </div>
+      </div>
+    </div>
+    <div class="ability-wrapper">
+      <div class="ability-score-and-modifier"> 
+        <h3 class="ability-header">WIS</h3>
+        <div class="ability-modifier"> 
+          <input type="hidden" name="attr_wisdom_modifier" value="+0"/><span name="attr_wisdom_modifier"></span>
+        </div>
+        <input class="ability-score" type="number" name="attr_wisdom" value="10" min="0" max="25"/>
+      </div>
+      <div class="skills-wrapper"> 
+        <label class="skill-header" id="wisdom_proficiency_label">Prof.</label>
+        <label class="skill-header" id="wisdom_modifier_label">Mod</label>
+        <label class="skill-header" id="wisdom_name_label">Name</label>
+        <label class="skill-header" id="wisdom_roll_type_label">Roll Type</label>
+        <div class="skill-proficiency-toggle value-wrapper"> 
+          <input type="hidden" name="attr_wisdom_save_proficiency" value="0"/>
+          <button type="action" name="act_wisdom_save_proficiency" aria-labelledby="wisdom_proficiency_label"></button>
+        </div>
+        <div class="dice-modifier value-wrapper">
+          <input type="hidden" name="attr_wisdom_save" value="+0"/>
+          <input type="hidden" name="attr_wisdom_save_passive" value="10"/>
+          <button type="action" name="act_wisdom_save_show_additional_mods_toggle" aria-labelledby="wisdom_modifier_label"><span name="attr_wisdom_save"></span><span name="attr_wisdom_save_has_additional_modifiers"></span></button>
+        </div>
+        <button type="roll" name="roll_wisdom_save" value="/roll @{wisdom_save_roll_type} @{wisdom_save}@{wisdom_save_additional_dice}"><span class="skill-label" aria-labelledby="wisdom_name_label">Saving Throw</span></button>
+        <div class="skill-advantage-toggle value-wrapper">
+          <input type="hidden" name="attr_wisdom_save_roll_type" value="1d20"/>
+          <button type="action" name="act_wisdom_save_roll_type" aria-labelledby="wisdom_roll_type_label"></button>
+        </div>
+        <div class="additional-modifiers">
+          <input type="hidden" name="attr_wisdom_save_show_additional_mods_toggle" value="0"/>
+          <label class="header">Additional Modifiers</label><span>Value</span><span class="dice-label">Dice</span>
+          <input class="modifier-input" type="number" name="attr_wisdom_save_additional_modifiers" value="0"/>
+          <input type="number" name="attr_wisdom_save_additional_dice_count" value="0"/>
+          <select name="attr_wisdom_save_additional_dice_type">
+            <option value="d4">d4</option>
+            <option value="d6">d6</option>
+            <option value="d8">d8</option>
+            <option value="d10">d10</option>
+            <option value="d12">d12</option>
+            <option value="d20">d20</option>
+          </select>
+          <input type="hidden" name="attr_wisdom_save_additional_dice" value=""/>
+          <input type="hidden" name="attr_wisdom_save_has_additional_modifiers" value=""/>
+        </div>
+        <div class="skill-proficiency-toggle value-wrapper"> 
+          <input type="hidden" name="attr_animal_handling_proficiency" value="0"/>
+          <button type="action" name="act_animal_handling_proficiency" aria-labelledby="wisdom_proficiency_label"></button>
+        </div>
+        <div class="dice-modifier value-wrapper">
+          <input type="hidden" name="attr_animal_handling" value="+0"/>
+          <input type="hidden" name="attr_animal_handling_passive" value="10"/>
+          <button type="action" name="act_animal_handling_show_additional_mods_toggle" aria-labelledby="wisdom_modifier_label"><span name="attr_animal_handling"></span><span name="attr_animal_handling_has_additional_modifiers"></span></button>
+        </div>
+        <button type="roll" name="roll_animal_handling" value="/roll @{animal_handling_roll_type} @{animal_handling}@{animal_handling_additional_dice}"><span class="skill-label" aria-labelledby="wisdom_name_label">Animal Handling</span></button>
+        <div class="skill-advantage-toggle value-wrapper">
+          <input type="hidden" name="attr_animal_handling_roll_type" value="1d20"/>
+          <button type="action" name="act_animal_handling_roll_type" aria-labelledby="wisdom_roll_type_label"></button>
+        </div>
+        <div class="additional-modifiers">
+          <input type="hidden" name="attr_animal_handling_show_additional_mods_toggle" value="0"/>
+          <label class="header">Additional Modifiers</label><span>Value</span><span class="dice-label">Dice</span>
+          <input class="modifier-input" type="number" name="attr_animal_handling_additional_modifiers" value="0"/>
+          <input type="number" name="attr_animal_handling_additional_dice_count" value="0"/>
+          <select name="attr_animal_handling_additional_dice_type">
+            <option value="d4">d4</option>
+            <option value="d6">d6</option>
+            <option value="d8">d8</option>
+            <option value="d10">d10</option>
+            <option value="d12">d12</option>
+            <option value="d20">d20</option>
+          </select>
+          <input type="hidden" name="attr_animal_handling_additional_dice" value=""/>
+          <input type="hidden" name="attr_animal_handling_has_additional_modifiers" value=""/>
+        </div>
+        <div class="skill-proficiency-toggle value-wrapper"> 
+          <input type="hidden" name="attr_insight_proficiency" value="0"/>
+          <button type="action" name="act_insight_proficiency" aria-labelledby="wisdom_proficiency_label"></button>
+        </div>
+        <div class="dice-modifier value-wrapper">
+          <input type="hidden" name="attr_insight" value="+0"/>
+          <input type="hidden" name="attr_insight_passive" value="10"/>
+          <button type="action" name="act_insight_show_additional_mods_toggle" aria-labelledby="wisdom_modifier_label"><span name="attr_insight"></span><span name="attr_insight_has_additional_modifiers"></span></button>
+        </div>
+        <button type="roll" name="roll_insight" value="/roll @{insight_roll_type} @{insight}@{insight_additional_dice}"><span class="skill-label" aria-labelledby="wisdom_name_label">Insight</span></button>
+        <div class="skill-advantage-toggle value-wrapper">
+          <input type="hidden" name="attr_insight_roll_type" value="1d20"/>
+          <button type="action" name="act_insight_roll_type" aria-labelledby="wisdom_roll_type_label"></button>
+        </div>
+        <div class="additional-modifiers">
+          <input type="hidden" name="attr_insight_show_additional_mods_toggle" value="0"/>
+          <label class="header">Additional Modifiers</label><span>Value</span><span class="dice-label">Dice</span>
+          <input class="modifier-input" type="number" name="attr_insight_additional_modifiers" value="0"/>
+          <input type="number" name="attr_insight_additional_dice_count" value="0"/>
+          <select name="attr_insight_additional_dice_type">
+            <option value="d4">d4</option>
+            <option value="d6">d6</option>
+            <option value="d8">d8</option>
+            <option value="d10">d10</option>
+            <option value="d12">d12</option>
+            <option value="d20">d20</option>
+          </select>
+          <input type="hidden" name="attr_insight_additional_dice" value=""/>
+          <input type="hidden" name="attr_insight_has_additional_modifiers" value=""/>
+        </div>
+        <div class="skill-proficiency-toggle value-wrapper"> 
+          <input type="hidden" name="attr_medicine_proficiency" value="0"/>
+          <button type="action" name="act_medicine_proficiency" aria-labelledby="wisdom_proficiency_label"></button>
+        </div>
+        <div class="dice-modifier value-wrapper">
+          <input type="hidden" name="attr_medicine" value="+0"/>
+          <input type="hidden" name="attr_medicine_passive" value="10"/>
+          <button type="action" name="act_medicine_show_additional_mods_toggle" aria-labelledby="wisdom_modifier_label"><span name="attr_medicine"></span><span name="attr_medicine_has_additional_modifiers"></span></button>
+        </div>
+        <button type="roll" name="roll_medicine" value="/roll @{medicine_roll_type} @{medicine}@{medicine_additional_dice}"><span class="skill-label" aria-labelledby="wisdom_name_label">Medicine</span></button>
+        <div class="skill-advantage-toggle value-wrapper">
+          <input type="hidden" name="attr_medicine_roll_type" value="1d20"/>
+          <button type="action" name="act_medicine_roll_type" aria-labelledby="wisdom_roll_type_label"></button>
+        </div>
+        <div class="additional-modifiers">
+          <input type="hidden" name="attr_medicine_show_additional_mods_toggle" value="0"/>
+          <label class="header">Additional Modifiers</label><span>Value</span><span class="dice-label">Dice</span>
+          <input class="modifier-input" type="number" name="attr_medicine_additional_modifiers" value="0"/>
+          <input type="number" name="attr_medicine_additional_dice_count" value="0"/>
+          <select name="attr_medicine_additional_dice_type">
+            <option value="d4">d4</option>
+            <option value="d6">d6</option>
+            <option value="d8">d8</option>
+            <option value="d10">d10</option>
+            <option value="d12">d12</option>
+            <option value="d20">d20</option>
+          </select>
+          <input type="hidden" name="attr_medicine_additional_dice" value=""/>
+          <input type="hidden" name="attr_medicine_has_additional_modifiers" value=""/>
+        </div>
+        <div class="skill-proficiency-toggle value-wrapper"> 
+          <input type="hidden" name="attr_perception_proficiency" value="0"/>
+          <button type="action" name="act_perception_proficiency" aria-labelledby="wisdom_proficiency_label"></button>
+        </div>
+        <div class="dice-modifier value-wrapper">
+          <input type="hidden" name="attr_perception" value="+0"/>
+          <input type="hidden" name="attr_perception_passive" value="10"/>
+          <button type="action" name="act_perception_show_additional_mods_toggle" aria-labelledby="wisdom_modifier_label"><span name="attr_perception"></span><span name="attr_perception_has_additional_modifiers"></span></button>
+        </div>
+        <button type="roll" name="roll_perception" value="/roll @{perception_roll_type} @{perception}@{perception_additional_dice}"><span class="skill-label" aria-labelledby="wisdom_name_label">Perception</span></button>
+        <div class="skill-advantage-toggle value-wrapper">
+          <input type="hidden" name="attr_perception_roll_type" value="1d20"/>
+          <button type="action" name="act_perception_roll_type" aria-labelledby="wisdom_roll_type_label"></button>
+        </div>
+        <div class="additional-modifiers">
+          <input type="hidden" name="attr_perception_show_additional_mods_toggle" value="0"/>
+          <label class="header">Additional Modifiers</label><span>Value</span><span class="dice-label">Dice</span>
+          <input class="modifier-input" type="number" name="attr_perception_additional_modifiers" value="0"/>
+          <input type="number" name="attr_perception_additional_dice_count" value="0"/>
+          <select name="attr_perception_additional_dice_type">
+            <option value="d4">d4</option>
+            <option value="d6">d6</option>
+            <option value="d8">d8</option>
+            <option value="d10">d10</option>
+            <option value="d12">d12</option>
+            <option value="d20">d20</option>
+          </select>
+          <input type="hidden" name="attr_perception_additional_dice" value=""/>
+          <input type="hidden" name="attr_perception_has_additional_modifiers" value=""/>
+        </div>
+        <div class="skill-proficiency-toggle value-wrapper"> 
+          <input type="hidden" name="attr_survival_proficiency" value="0"/>
+          <button type="action" name="act_survival_proficiency" aria-labelledby="wisdom_proficiency_label"></button>
+        </div>
+        <div class="dice-modifier value-wrapper">
+          <input type="hidden" name="attr_survival" value="+0"/>
+          <input type="hidden" name="attr_survival_passive" value="10"/>
+          <button type="action" name="act_survival_show_additional_mods_toggle" aria-labelledby="wisdom_modifier_label"><span name="attr_survival"></span><span name="attr_survival_has_additional_modifiers"></span></button>
+        </div>
+        <button type="roll" name="roll_survival" value="/roll @{survival_roll_type} @{survival}@{survival_additional_dice}"><span class="skill-label" aria-labelledby="wisdom_name_label">Survival</span></button>
+        <div class="skill-advantage-toggle value-wrapper">
+          <input type="hidden" name="attr_survival_roll_type" value="1d20"/>
+          <button type="action" name="act_survival_roll_type" aria-labelledby="wisdom_roll_type_label"></button>
+        </div>
+        <div class="additional-modifiers">
+          <input type="hidden" name="attr_survival_show_additional_mods_toggle" value="0"/>
+          <label class="header">Additional Modifiers</label><span>Value</span><span class="dice-label">Dice</span>
+          <input class="modifier-input" type="number" name="attr_survival_additional_modifiers" value="0"/>
+          <input type="number" name="attr_survival_additional_dice_count" value="0"/>
+          <select name="attr_survival_additional_dice_type">
+            <option value="d4">d4</option>
+            <option value="d6">d6</option>
+            <option value="d8">d8</option>
+            <option value="d10">d10</option>
+            <option value="d12">d12</option>
+            <option value="d20">d20</option>
+          </select>
+          <input type="hidden" name="attr_survival_additional_dice" value=""/>
+          <input type="hidden" name="attr_survival_has_additional_modifiers" value=""/>
+        </div>
+      </div>
+    </div>
+    <div class="ability-wrapper">
+      <div class="ability-score-and-modifier"> 
+        <h3 class="ability-header">CHA</h3>
+        <div class="ability-modifier"> 
+          <input type="hidden" name="attr_charisma_modifier" value="+0"/><span name="attr_charisma_modifier"></span>
+        </div>
+        <input class="ability-score" type="number" name="attr_charisma" value="10" min="0" max="25"/>
+      </div>
+      <div class="skills-wrapper"> 
+        <label class="skill-header" id="charisma_proficiency_label">Prof.</label>
+        <label class="skill-header" id="charisma_modifier_label">Mod</label>
+        <label class="skill-header" id="charisma_name_label">Name</label>
+        <label class="skill-header" id="charisma_roll_type_label">Roll Type</label>
+        <div class="skill-proficiency-toggle value-wrapper"> 
+          <input type="hidden" name="attr_charisma_save_proficiency" value="0"/>
+          <button type="action" name="act_charisma_save_proficiency" aria-labelledby="charisma_proficiency_label"></button>
+        </div>
+        <div class="dice-modifier value-wrapper">
+          <input type="hidden" name="attr_charisma_save" value="+0"/>
+          <input type="hidden" name="attr_charisma_save_passive" value="10"/>
+          <button type="action" name="act_charisma_save_show_additional_mods_toggle" aria-labelledby="charisma_modifier_label"><span name="attr_charisma_save"></span><span name="attr_charisma_save_has_additional_modifiers"></span></button>
+        </div>
+        <button type="roll" name="roll_charisma_save" value="/roll @{charisma_save_roll_type} @{charisma_save}@{charisma_save_additional_dice}"><span class="skill-label" aria-labelledby="charisma_name_label">Saving Throw</span></button>
+        <div class="skill-advantage-toggle value-wrapper">
+          <input type="hidden" name="attr_charisma_save_roll_type" value="1d20"/>
+          <button type="action" name="act_charisma_save_roll_type" aria-labelledby="charisma_roll_type_label"></button>
+        </div>
+        <div class="additional-modifiers">
+          <input type="hidden" name="attr_charisma_save_show_additional_mods_toggle" value="0"/>
+          <label class="header">Additional Modifiers</label><span>Value</span><span class="dice-label">Dice</span>
+          <input class="modifier-input" type="number" name="attr_charisma_save_additional_modifiers" value="0"/>
+          <input type="number" name="attr_charisma_save_additional_dice_count" value="0"/>
+          <select name="attr_charisma_save_additional_dice_type">
+            <option value="d4">d4</option>
+            <option value="d6">d6</option>
+            <option value="d8">d8</option>
+            <option value="d10">d10</option>
+            <option value="d12">d12</option>
+            <option value="d20">d20</option>
+          </select>
+          <input type="hidden" name="attr_charisma_save_additional_dice" value=""/>
+          <input type="hidden" name="attr_charisma_save_has_additional_modifiers" value=""/>
+        </div>
+        <div class="skill-proficiency-toggle value-wrapper"> 
+          <input type="hidden" name="attr_deception_proficiency" value="0"/>
+          <button type="action" name="act_deception_proficiency" aria-labelledby="charisma_proficiency_label"></button>
+        </div>
+        <div class="dice-modifier value-wrapper">
+          <input type="hidden" name="attr_deception" value="+0"/>
+          <input type="hidden" name="attr_deception_passive" value="10"/>
+          <button type="action" name="act_deception_show_additional_mods_toggle" aria-labelledby="charisma_modifier_label"><span name="attr_deception"></span><span name="attr_deception_has_additional_modifiers"></span></button>
+        </div>
+        <button type="roll" name="roll_deception" value="/roll @{deception_roll_type} @{deception}@{deception_additional_dice}"><span class="skill-label" aria-labelledby="charisma_name_label">Deception</span></button>
+        <div class="skill-advantage-toggle value-wrapper">
+          <input type="hidden" name="attr_deception_roll_type" value="1d20"/>
+          <button type="action" name="act_deception_roll_type" aria-labelledby="charisma_roll_type_label"></button>
+        </div>
+        <div class="additional-modifiers">
+          <input type="hidden" name="attr_deception_show_additional_mods_toggle" value="0"/>
+          <label class="header">Additional Modifiers</label><span>Value</span><span class="dice-label">Dice</span>
+          <input class="modifier-input" type="number" name="attr_deception_additional_modifiers" value="0"/>
+          <input type="number" name="attr_deception_additional_dice_count" value="0"/>
+          <select name="attr_deception_additional_dice_type">
+            <option value="d4">d4</option>
+            <option value="d6">d6</option>
+            <option value="d8">d8</option>
+            <option value="d10">d10</option>
+            <option value="d12">d12</option>
+            <option value="d20">d20</option>
+          </select>
+          <input type="hidden" name="attr_deception_additional_dice" value=""/>
+          <input type="hidden" name="attr_deception_has_additional_modifiers" value=""/>
+        </div>
+        <div class="skill-proficiency-toggle value-wrapper"> 
+          <input type="hidden" name="attr_intimidation_proficiency" value="0"/>
+          <button type="action" name="act_intimidation_proficiency" aria-labelledby="charisma_proficiency_label"></button>
+        </div>
+        <div class="dice-modifier value-wrapper">
+          <input type="hidden" name="attr_intimidation" value="+0"/>
+          <input type="hidden" name="attr_intimidation_passive" value="10"/>
+          <button type="action" name="act_intimidation_show_additional_mods_toggle" aria-labelledby="charisma_modifier_label"><span name="attr_intimidation"></span><span name="attr_intimidation_has_additional_modifiers"></span></button>
+        </div>
+        <button type="roll" name="roll_intimidation" value="/roll @{intimidation_roll_type} @{intimidation}@{intimidation_additional_dice}"><span class="skill-label" aria-labelledby="charisma_name_label">Intimidation</span></button>
+        <div class="skill-advantage-toggle value-wrapper">
+          <input type="hidden" name="attr_intimidation_roll_type" value="1d20"/>
+          <button type="action" name="act_intimidation_roll_type" aria-labelledby="charisma_roll_type_label"></button>
+        </div>
+        <div class="additional-modifiers">
+          <input type="hidden" name="attr_intimidation_show_additional_mods_toggle" value="0"/>
+          <label class="header">Additional Modifiers</label><span>Value</span><span class="dice-label">Dice</span>
+          <input class="modifier-input" type="number" name="attr_intimidation_additional_modifiers" value="0"/>
+          <input type="number" name="attr_intimidation_additional_dice_count" value="0"/>
+          <select name="attr_intimidation_additional_dice_type">
+            <option value="d4">d4</option>
+            <option value="d6">d6</option>
+            <option value="d8">d8</option>
+            <option value="d10">d10</option>
+            <option value="d12">d12</option>
+            <option value="d20">d20</option>
+          </select>
+          <input type="hidden" name="attr_intimidation_additional_dice" value=""/>
+          <input type="hidden" name="attr_intimidation_has_additional_modifiers" value=""/>
+        </div>
+        <div class="skill-proficiency-toggle value-wrapper"> 
+          <input type="hidden" name="attr_performance_proficiency" value="0"/>
+          <button type="action" name="act_performance_proficiency" aria-labelledby="charisma_proficiency_label"></button>
+        </div>
+        <div class="dice-modifier value-wrapper">
+          <input type="hidden" name="attr_performance" value="+0"/>
+          <input type="hidden" name="attr_performance_passive" value="10"/>
+          <button type="action" name="act_performance_show_additional_mods_toggle" aria-labelledby="charisma_modifier_label"><span name="attr_performance"></span><span name="attr_performance_has_additional_modifiers"></span></button>
+        </div>
+        <button type="roll" name="roll_performance" value="/roll @{performance_roll_type} @{performance}@{performance_additional_dice}"><span class="skill-label" aria-labelledby="charisma_name_label">Performance</span></button>
+        <div class="skill-advantage-toggle value-wrapper">
+          <input type="hidden" name="attr_performance_roll_type" value="1d20"/>
+          <button type="action" name="act_performance_roll_type" aria-labelledby="charisma_roll_type_label"></button>
+        </div>
+        <div class="additional-modifiers">
+          <input type="hidden" name="attr_performance_show_additional_mods_toggle" value="0"/>
+          <label class="header">Additional Modifiers</label><span>Value</span><span class="dice-label">Dice</span>
+          <input class="modifier-input" type="number" name="attr_performance_additional_modifiers" value="0"/>
+          <input type="number" name="attr_performance_additional_dice_count" value="0"/>
+          <select name="attr_performance_additional_dice_type">
+            <option value="d4">d4</option>
+            <option value="d6">d6</option>
+            <option value="d8">d8</option>
+            <option value="d10">d10</option>
+            <option value="d12">d12</option>
+            <option value="d20">d20</option>
+          </select>
+          <input type="hidden" name="attr_performance_additional_dice" value=""/>
+          <input type="hidden" name="attr_performance_has_additional_modifiers" value=""/>
+        </div>
+        <div class="skill-proficiency-toggle value-wrapper"> 
+          <input type="hidden" name="attr_persuasion_proficiency" value="0"/>
+          <button type="action" name="act_persuasion_proficiency" aria-labelledby="charisma_proficiency_label"></button>
+        </div>
+        <div class="dice-modifier value-wrapper">
+          <input type="hidden" name="attr_persuasion" value="+0"/>
+          <input type="hidden" name="attr_persuasion_passive" value="10"/>
+          <button type="action" name="act_persuasion_show_additional_mods_toggle" aria-labelledby="charisma_modifier_label"><span name="attr_persuasion"></span><span name="attr_persuasion_has_additional_modifiers"></span></button>
+        </div>
+        <button type="roll" name="roll_persuasion" value="/roll @{persuasion_roll_type} @{persuasion}@{persuasion_additional_dice}"><span class="skill-label" aria-labelledby="charisma_name_label">Persuasion</span></button>
+        <div class="skill-advantage-toggle value-wrapper">
+          <input type="hidden" name="attr_persuasion_roll_type" value="1d20"/>
+          <button type="action" name="act_persuasion_roll_type" aria-labelledby="charisma_roll_type_label"></button>
+        </div>
+        <div class="additional-modifiers">
+          <input type="hidden" name="attr_persuasion_show_additional_mods_toggle" value="0"/>
+          <label class="header">Additional Modifiers</label><span>Value</span><span class="dice-label">Dice</span>
+          <input class="modifier-input" type="number" name="attr_persuasion_additional_modifiers" value="0"/>
+          <input type="number" name="attr_persuasion_additional_dice_count" value="0"/>
+          <select name="attr_persuasion_additional_dice_type">
+            <option value="d4">d4</option>
+            <option value="d6">d6</option>
+            <option value="d8">d8</option>
+            <option value="d10">d10</option>
+            <option value="d12">d12</option>
+            <option value="d20">d20</option>
+          </select>
+          <input type="hidden" name="attr_persuasion_additional_dice" value=""/>
+          <input type="hidden" name="attr_persuasion_has_additional_modifiers" value=""/>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="proficiencies">
+    <fieldset class="repeating_languages"> 
+      <div class="compendium-drop-target"> 
+        <input type="hidden" name="attr_script" accept="Script"/>
+      </div>
+    </fieldset>
+  </div>
+</div>

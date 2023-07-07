@@ -1,0 +1,116 @@
+include mixins.pug
+
+mixin additinalModifiers(skill)
+    .additional-modifiers
+        +storedValue(`attr_${skill}_show_additional_mods_toggle`, "0")
+        label.header Additional Modifiers
+        span Value
+        span.dice-label Dice
+        input.modifier-input(
+            type="number" 
+            name=`attr_${skill}_additional_modifiers`
+            value="0"
+        )
+        input(
+            type="number"
+            name=`attr_${skill}_additional_dice_count`
+            value="0"
+        )
+        select(name=`attr_${skill}_additional_dice_type`)
+            each dieType in ['d4', 'd6', 'd8', 'd10', 'd12', 'd20']
+                option(value=dieType)=dieType
+        +storedValue(`attr_${skill}_additional_dice`, "")
+        +storedValue(`attr_${skill}_has_additional_modifiers`, "")
+
+mixin skillWrapper(abilityName, skill)
+    .skill-proficiency-toggle.value-wrapper 
+        +storedValue(`attr_${skill.name}_proficiency`, "0")
+        button(
+            type="action"
+            name=`act_${skill.name}_proficiency`
+            aria-labelledby=`${abilityName}_proficiency_label`
+        )
+    .dice-modifier.value-wrapper
+        +storedValue(`attr_${skill.name}`, "+0")
+        +storedValue(`attr_${skill.name}_passive`, "10")
+        button(
+            type="action"
+            name=`act_${skill.name}_show_additional_mods_toggle`
+            aria-labelledby=`${abilityName}_modifier_label`
+        )
+            span(name=`attr_${skill.name}`)
+            span(name=`attr_${skill.name}_has_additional_modifiers`)
+    button(
+        type="roll"
+        name=`roll_${skill.name}`
+        value=`/roll @{${skill.name}_roll_type} @{${skill.name}}@{${skill.name}_additional_dice}`
+    )
+        span.skill-label(
+            aria-labelledby=`${abilityName}_name_label`
+        )= skill.label
+    +rollTypeButton(skill.name, 'skill-advantage-toggle value-wrapper', `${abilityName}_roll_type_label`)
+    +additinalModifiers(skill.name)
+
+mixin abilityScoreAndModifier(ability)
+    .ability-score-and-modifier 
+        h3.ability-header= ability.label
+        .ability-modifier 
+            +storedValue(`attr_${ability.name}_modifier`, "+0")
+            span(
+                name=`attr_${ability.name}_modifier`
+            )
+        input.ability-score(
+            type="number"
+            name=`attr_${ability.name}`
+            value="10"
+            min="0"
+            max="25"
+        )
+
+mixin passive(skill)
+    .passive
+        .passive-value
+            span(name=`attr_${skill.name}_passive`)
+            span(name=`attr_${skill.name}_has_additional_modifiers`)
+        span.passive-label=`Passive ${skill.label}`
+
+mixin languages()
+    fieldset.repeating_languages 
+        .compendium-drop-target 
+            input(type="hidden" name="attr_script" accept="Script")
+            input(type="hidden" name="attr_prof_type" accept="Type")
+            input(type="hidden" name="attr_prof_name" accept="Proficiency")
+            span(name="attr_prof_name")
+            span(name="attr_prof_type")
+            span(name="attr_script")
+
+mixin abilitiesAndSkills()
+    - 
+        const passiveSkills = abilities.reduce((skills, ability) => {
+            ability.skills.forEach((skill) => {
+                if (skill.isPassive) {
+                    skills.push(skill);
+                }
+            });
+            return skills;
+        }, []);
+    .passive-skills
+        each passiveSkill in passiveSkills
+            +passive(passiveSkill)
+    .abilities-and-skills-wrapper
+        each ability in abilities
+            div.ability-wrapper
+                +abilityScoreAndModifier(ability)
+                .skills-wrapper 
+                    label.skill-header(id=`${ability.name}_proficiency_label`) Prof.
+                    label.skill-header(id=`${ability.name}_modifier_label`) Mod
+                    label.skill-header(id=`${ability.name}_name_label`) Name
+                    label.skill-header(id=`${ability.name}_roll_type_label`) Roll Type
+                    +skillWrapper(ability.name, {name: `${ability.name}_save`, label: 'Saving Throw'})
+                    each skill in ability.skills
+                        +skillWrapper(ability.name, skill)
+    .proficiencies
+        +languages()
+        //- +resistances()
+        //- +tools()
+        //- +equipment()

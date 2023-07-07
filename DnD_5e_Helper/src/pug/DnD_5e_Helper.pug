@@ -1,4 +1,5 @@
-include pug/mixins.pug
+include abilities-and-skills.pug
+include worker.pug
 
 .dnd-5e-helper 
 	.prof-bonus 
@@ -8,9 +9,7 @@ include pug/mixins.pug
 			name= "attr_proficiency_bonus"
 			value= "+2"
 		)
-	.abilities-and-skills-wrapper 
-		- const strength = {name: 'strength',label: 'STR',skills: [{name: 'athletics',label: 'Athletics'}]};
-		+attributeSection(strength)
+	+abilitiesAndSkills()
 //- |
 //- |
 //- include pug/rolltemplate.pug

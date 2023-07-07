@@ -1,22 +1,22 @@
 const gulp = require("gulp");
-const pug = require("gulp-pug");
-const sass = require('gulp-sass')(require('sass'));
+const pug = require("gulp-pug-3");
+const sass = require('gulp-sass');
 
 gulp.task("scss", () => {
-  return gulp.src("./scss/arc.scss")
+  return gulp.src("./scss/DnD_5e_Helper.scss")
       .pipe(sass({
         outputStyle: "expanded"
       }).on("error", sass.logError))
-    .pipe(gulp.dest("../"))
+    .pipe(gulp.dest("./"))
 })
 
 gulp.task("html", function () {
-  return gulp.src("./pug/arc.pug")
+  return gulp.src("./src/pug/DnD_5e_Helper.pug")
     .pipe(pug({
       pretty: true,
-      locals: require("../translation.json")
+      locals: require('./src/json/constants.json')
     }))
-    .pipe(gulp.dest("../"))
+    .pipe(gulp.dest("./"))
 })
 
 gulp.task("watch", gulp.series(["scss", "html"], () => {
